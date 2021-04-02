@@ -1,10 +1,17 @@
+#region imports
+import os
 import tkinter as tk
+from tkinter import *
 from tkinter import filedialog
 from tkinter.constants import HORIZONTAL
 
 from keras.models import load_model
 from keras.preprocessing.image import save_img
+from keras_preprocessing.image.utils import img_to_array, load_img
+
 from predict import predict
+from image_viewer import ImageViewer
+#endregion
 
 class MainApp(tk.Tk): 
     def __init__(self):
@@ -13,13 +20,38 @@ class MainApp(tk.Tk):
         super().__init__()
         #endregion
         
+        #region menu bar
+        self.menu_bar = tk.Menu(self)
+
+        #region file_menu
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.file_menu.add_command(label="New Workspace", command=self.placeholder)
+        self.file_menu.add_command(label="New Window", command=self.placeholder)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Open Image(s)", command=self.placeholder)
+        self.file_menu.add_command(label="Open Directory", command=self.placeholder)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Save", command=self.placeholder)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Preferences", command=self.placeholder)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Exit", command=lambda: self.destroy())
+        self.menu_bar.add_cascade(label="File", menu = self.file_menu)
+        #endregion
+        
+        #region options_menu
+        #endregion
+        #endregion
+
         #region model frame
         self.model_frame = tk.LabelFrame(self, text = "Model Selection", padx=10, pady=10)
         self.model_frame.grid(row=0, column=0, padx=10, pady=10)
         
+        self.model_list = [model.name for model in os.scandir("./models")]
         self.model_selected = tk.StringVar()
-        self.model_selected.set("model")
-        self.model_dropdown = tk.OptionMenu(self.model_frame, self.model_selected, "model_2")
+        self.model_selected.set(self.model_list[0])
+        self.model_dropdown = tk.OptionMenu(self.model_frame, self.model_selected, *self.model_list)
+        self.model_dropdown.bind("<Button-1>", self.model_dropdown_clicked)
         self.model_dropdown.pack(pady=5)
 
         self.model_threshold_slider = tk.Scale(self.model_frame, from_=0, to=1, resolution=0.01, orient=HORIZONTAL)
@@ -49,7 +81,23 @@ class MainApp(tk.Tk):
 
         self.run_button = tk.Button(self.run_frame, text="Run", command=self.run).grid(row=0, column=0)
         #endregion
+        
+        #region final configuration
+        self.title("Command Palette")
+        self.config(menu=self.menu_bar)
+        self.mainloop()
+        #endregion
+
+    def placeholder(self):
+        img_viewer = ImageViewer(self)
+        img_viewer.mainloop()
     
+    def model_dropdown_clicked(self, event):
+        menu = self.model_dropdown["menu"]
+        menu.delete(0, "end")
+        for model in os.scandir("./models"):
+            menu.add_command(label=model.name, command=lambda value = model.name: self.model_selected.set(value))
+
     def get_img_paths(self):
         self.img_paths = list(filedialog.askopenfilenames(initialdir="C:/", title="Images"))
         self.img_paths_field.delete(0, len(self.img_paths_field.get()))
@@ -61,7 +109,8 @@ class MainApp(tk.Tk):
         self.destination_path_field.insert(0, save_path)
         
     def run(self): 
-        model = load_model(self.model_selected.get())
+        model = load_model("./models/" + self.model_selected.get())
         for i, img_path in enumerate(self.img_paths):
-            pred = predict(model, self.model_threshold_slider.get(), img_path)
+            img_array = img_to_array(load_img(img_path, color_mode="grayscale"))/255
+            pred = predict(img_array, model, self.model_threshold_slider.get())
             save_img(self.destination_path_field.get() + "/" + str(i) + ".png", pred)
