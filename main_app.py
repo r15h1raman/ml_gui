@@ -1,4 +1,7 @@
+<<<<<<< Updated upstream
 #region imports
+=======
+>>>>>>> Stashed changes
 import os
 import tkinter as tk
 from tkinter import *
@@ -111,6 +114,11 @@ class MainApp(tk.Tk):
     def run(self): 
         model = load_model("./models/" + self.model_selected.get())
         for i, img_path in enumerate(self.img_paths):
+<<<<<<< Updated upstream
             img_array = img_to_array(load_img(img_path, color_mode="grayscale"))/255
             pred = predict(img_array, model, self.model_threshold_slider.get())
             save_img(self.destination_path_field.get() + "/" + str(i) + ".png", pred)
+=======
+            pred = predict(model, self.model_threshold_slider.get(), img_path)
+            save_img(self.destination_path_field.get() + "/" + os.path.splitext(img_path.split("/")[-1])[0] + ".png", pred)
+>>>>>>> Stashed changes
